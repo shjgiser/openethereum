@@ -74,6 +74,11 @@ impl SyncSupplier {
 
 		if let Some(id) = SyncPacket::from_u8(packet_id) {
 			let result = match id {
+				GetPooledTransactionsPacket => SyncSupplier::return_rlp(
+					io, &rlp, peer,
+					SyncSupplier::return_pooled_transactions,
+					|e| format!("Error sending pooled transactions: {:?}", e)),
+
 				GetBlockBodiesPacket => SyncSupplier::return_rlp(
 					io, &rlp, peer,
 					SyncSupplier::return_block_bodies,
@@ -230,6 +235,19 @@ impl SyncSupplier {
 		rlp.append_raw(&data, count as usize);
 		trace!(target: "sync", "{} -> GetBlockHeaders: returned {} entries", peer_id, count);
 		Ok(Some((BlockHeadersPacket.id(), rlp)))
+	}
+
+	/// Respond to GetPooledTransactions request
+	fn return_pooled_transactions(io: &dyn SyncIo, r: &Rlp, peer_id: PeerId) -> RlpResponseResult {
+		const LIMIT: usize = 256;
+
+		let mut txs = io.chain().transactions_to_propagate();
+
+		let tx_hashes = r.iter().take(LIMIT).map(|v| v.as_val::<H256>()).collect::<Result<HashSet<_>, _>>()?;
+
+		
+
+		unimplemented!()
 	}
 
 	/// Respond to GetBlockBodies request
